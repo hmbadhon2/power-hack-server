@@ -1,7 +1,8 @@
 const express = require('express');
-const cors = require('cors')
 const app = express();
 require('dotenv').config();
+const cors = require('cors');
+const jwt = require('jsonwebtoken');
 const port = process.env.port || 5000;
 
 // middleWare
@@ -15,17 +16,62 @@ const uri =`mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@clus
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 console.log(uri)
 
+
+
+
+
 async function run(){
     try{
         const billingCollection=client.db("Power-Hack").collection("billing")
+        const usersCollection=client.db("Power-Hack").collection("users")
+
+
+        // Billing - api
+        app.get('/billing-list/:id', async(req,res)=>{
+            const id = req.params.id;
+            const filter = {_id:ObjectId(id)}
+            const result = await billingCollection.findOne(filter);
+            res.send(result);
+        })
         app.get('/billing-list', async(req,res)=>{
-            
+            const query ={};
+            const billingList = await billingCollection.find(query).toArray();
+            const count = await billingCollection.estimatedDocumentCount();
+            res.send(billingList)      
+        })
+        app.put('update-billing/:id', async(req, res)=>{
+            const id = req.params.id;
+            const filter = {_id:ObjectId(id)};
+            const result = await billingCollection.updateOne(filter)
+            res.send(result);
         })
         app.post('/add-billing', async(req, res)=>{
             const billing = req.body;
             const result = await billingCollection.insertOne(billing);
             res.send(result)
         })
+        app.delete('/delete-billing/:id', async(req,res)=>{
+            const id = req.params.id;
+            const filter = {_id: ObjectId(id)};
+            result = await billingCollection.deleteOne(filter);
+            res.send(result);
+        })
+
+        // user API
+
+        app.post('/login', async (req,res)=>{
+            const id = req.params.id;
+            const filter = {_id:ObjectId(id)}
+            const result = await usersCollection.findOne(filter);
+            res.send(result)
+        })
+
+        app.post('/registration', async (req,res)=>{
+            const user=req.body;
+            const result = await usersCollection.insertOne(user);
+            res.send(result)
+        })
+        
 
     }
     finally{
